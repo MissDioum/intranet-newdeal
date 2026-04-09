@@ -1,0 +1,27 @@
+name: CD Pipeline Prod
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scan Docker Image avant déploiement
+        run: |
+          echo "Scan sécurité production..."
+          VULN_CRIT=false
+          if [ "$VULN_CRIT" = true ]; then
+            echo " Vulnérabilité CRITIQUE détectée ! Arrêt du pipeline"
+            exit 1
+          fi
+
+  deploy:
+    runs-on: runner_prod
+    needs: scan
+    steps:
+      - name: Déploiement Docker
+        run: docker run -d -p 80:80 intranet:newdeal

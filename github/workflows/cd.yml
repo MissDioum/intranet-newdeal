@@ -1,0 +1,50 @@
+name: CD Pipeline Prod
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Scan for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Scan for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'image'
+          scan-ref: 'docker.io/${{ secrets.DOCKER_USERNAME }}/intranet-newdeal:latest'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      - name: Check for critical vulnerabilities
+        run: |
+          if grep -q '"severity": "CRITICAL"' trivy-results.sarif; then
+            echo "Vulnérabilité CRITIQUE détectée ! Arrêt du pipeline"
+            exit 1
+          fi
+
+  deploy:
+    runs-on: runner_prod
+    needs: scan
+    steps:
+      - name: Deploy to production
+        run: |
+          docker stop intranet-container || true
+          docker rm intranet-container || true
+          docker run -d --name intranet-container -p 80:80 ${{ secrets.DOCKER_USERNAME }}/intranet-newdeal:latest
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [scan, deploy]
+    if: always()
+    steps:
+      - name: Send email notification
+        run: |
+          # Simulation d'envoi d'email
+          echo "Notification email envoyée : Pipeline CD terminé avec status ${{ job.status }}"

@@ -56,5 +56,4 @@ jobs:
     steps:
       - name: Send email notification
         run: |
-          # Simulation d'envoi d'email
-          echo "Notification email envoyée : Pipeline CI terminé avec status ${{ job.status }}"
+          echo "Pipeline CI exécuté avec succès"

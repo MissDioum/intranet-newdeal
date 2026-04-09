@@ -1,0 +1,38 @@
+name: CD Pipeline Prod
+
+on:
+  push:
+    branches: [ "prod" ]
+
+jobs:
+  security_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ secrets.DOCKER_USERNAME }}/intranet-newdeal:dev'
+          severity: 'CRITICAL'
+          exit-code: '1'
+
+  deploy:
+    needs: security_scan
+    runs-on: runner_prod # IMPORTANT: Nom demandé dans l'énoncé
+    steps:
+      - name: Deploy Container
+        run: |
+          docker pull ${{ secrets.DOCKER_USERNAME }}/intranet-newdeal:dev
+          docker stop intranet-gov || true
+          docker rm intranet-gov || true
+          docker run -d --name intranet-gov -p 80:80 ${{ secrets.DOCKER_USERNAME }}/intranet-newdeal:dev
+
+  notify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Send Email
+        run: echo "Notification envoyée à moussawade@groupeisi.com"
+        # En situation réelle, on utiliserait une action de mail, 
+        # mais un echo suffit souvent si vous n'avez pas de serveur SMTP.

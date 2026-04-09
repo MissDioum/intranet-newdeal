@@ -1,2 +1,7 @@
+# Image de base demandée (version slim pour l'évolution)
 FROM nginx:alpine3.23-slim
-COPY *.html *.txt *.md assets /usr/share/nginx/html/
+
+# Copie des fichiers du template vers le répertoire nginx
+COPY . /usr/share/nginx/html/
+
+EXPOSE 80
